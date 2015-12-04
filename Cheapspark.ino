@@ -40,7 +40,7 @@ boolean switchstate = false;
 
 
 // Nano Led for debugging
-#define LED_PIN 13
+#define LED_PIN 13                //Digital pin 13 on Nano is connected to the onboard led
 boolean ledstate = false;
 
 
@@ -168,6 +168,8 @@ void mqttConnected(void* response)
 {
   delay(500);  // Weg doen?
   mqtt.publish(MQTT_TOPIC_DEBUG, MQTTCLIENT " online");
+  
+  // Relay - Subscribe to relay topic
   mqtt.subscribe(MQTT_TOPIC_RELAYS);
 }
 
@@ -176,7 +178,7 @@ void mqttDisconnected(void* response)
 
 }
 
-void mqttData(void* response)
+void mqttData(void* response)          // New MQTT msgs recieved
 {
   RESPONSE res(response);
   char buffer[4];
@@ -192,7 +194,7 @@ void mqttData(void* response)
   //mqtt.publish(MQTT_TOPIC_DEBUG, MQTTCLIENT " recieved a msg:" );
   
   // Relay
-  if (topic.compareTo(MQTT_TOPIC_RELAYS) == 0)        //Relay Command received?
+  if (topic.compareTo(MQTT_TOPIC_RELAYS) == 0)        //Relay Command received?   (topic == MQTT_TOPIC_RELAYS) => Should work fast
   {    
     if (strcmp(buffer,"r1") == 0) {
       digitalWrite(REL1_PIN,LOW);
