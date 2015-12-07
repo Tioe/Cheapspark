@@ -17,9 +17,9 @@ MQTT mqtt(&esp);
 // DHT
 #include <dht.h>
 #define DHT_PIN 5
-#define DHT_SEND_INTERVAL 15000      // Send data each 15 seconds
 #define MQTT_TOPIC_HUMI "/cheapspark0/dht22/humi"   //output
 #define MQTT_TOPIC_TEMP "/cheapspark0/dht22/temp"   //output
+#define DHT_SEND_INTERVAL 15000      // Send data each 15 seconds
 unsigned long nextDHTPub = DHT_SEND_INTERVAL;
 dht DHT;
 
@@ -31,6 +31,16 @@ dht DHT;
 #define REL4_PIN 12
 #define MQTT_TOPIC_RELAYS "/cheapspark0/relays"       //Input send r1, r2, r3 or r4
 
+
+// OneWireTemp
+#include <OneWire.h>
+#include <DallasTemperature.h>
+#define ONE_WIRE_BUS 6      // Data wire is plugged into pin 6 on the Arduino
+#define MQTT_TOPIC_TEMPONEWIRE "/cheapspark0/onewire/temp"   //output
+#define ONEWIRETEMP_SEND_INTERVAL 20000      // Send data each 15 seconds
+unsigned long nextOneWirePub = ONEWIRETEMP_SEND_INTERVAL;
+OneWire oneWire(ONE_WIRE_BUS);
+DallasTemperature sensors(&oneWire);
 
 // Switch
 #define SWITCH_PIN 0              //Uses analog pin 0
@@ -69,6 +79,9 @@ void setup()
   digitalWrite(REL2_PIN,HIGH);
   digitalWrite(REL3_PIN,HIGH);
   digitalWrite(REL4_PIN,HIGH);
+  
+  //OneWireTemp Setup
+  sensors.begin();
 
   // Wifi Setup
   delay(5000);      //LAGER PROBEREN
@@ -129,12 +142,26 @@ void loop()
       
       char chHumid[10];
       char chTempe[10];
-      
       dtostrf(humid,1,2,chHumid);
       dtostrf(tempe,1,2,chTempe);
       
       mqtt.publish(MQTT_TOPIC_HUMI,chHumid);
       mqtt.publish(MQTT_TOPIC_TEMP,chTempe);
+    }
+    
+    // OneWireTemp publishing loop
+    if (now >= nextOneWirePub)                  //COULD GO WRONG AFTER 49 DAYS
+    { 
+      nextOneWirePub = now + ONEWIRETEMP_SEND_INTERVAL;
+      
+      sensors.requestTemperatures(); // Send the command to get temperatures
+      
+      float tempOW = sensors.getTempCByIndex(0); // returns -127 when nothing is connected!!!!
+      
+      char chTempOW[5];      
+      dtostrf(tempOW,1,2,chTempOW);
+
+      mqtt.publish(MQTT_TOPIC_TEMPONEWIRE,chTempOW);
     }
   }
 }
